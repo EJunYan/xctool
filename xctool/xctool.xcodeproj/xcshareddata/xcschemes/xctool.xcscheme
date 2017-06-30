@@ -389,6 +389,36 @@
             ReferencedContainer = "container:xctool.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "run-tests"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-project /Users/nekto/Projects/others/xctool_tests/TestProject-AppTests/TestProject-AppTests.xcodeproj"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-scheme TestProject-AppTests"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-uiTest /Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator/TestProject-AppTestsUITests-Runner.app:/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator/TestProject-AppTestsUITests-Runner.app/PlugIns/TestProject-AppTestsUITests.xctest"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-appTest /Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator/TestProject-AppTestsUITests-Runner.app/PlugIns/TestProject-AppTestsUITests.xctest:/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator/TestProject-AppTestsUITests-Runner.app/XCTRunner"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-sdk iphonesimulator"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-destination &quot;name=iPhone SE,OS=latest&quot;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>

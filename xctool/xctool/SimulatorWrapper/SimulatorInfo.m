@@ -350,15 +350,15 @@ static const NSInteger KProductTypeAppleTV = 3;
   } else {
     NSAssert(false, @"'%@' sdk is not yet supported", sdkName);
   }
-  [librariesToInsert addObject:ideBundleInjectionLibPath];
+//  [librariesToInsert addObject:ideBundleInjectionLibPath];
 
   [environment addEntriesFromDictionary:@{
     @"DYLD_INSERT_LIBRARIES" : [librariesToInsert componentsJoinedByString:@":"],
     @"NSUnbufferedIO" : @"YES",
-    @"XCInjectBundle" : [self productBundlePath],
-    @"XCInjectBundleInto" : [self testHostPath],
-    @"AppTargetLocation": [self testHostPath],
-    @"TestBundleLocation": [self productBundlePath],
+//    @"XCInjectBundle" : [self productBundlePath],
+//    @"XCInjectBundleInto" : [self testHostPath],
+//    @"AppTargetLocation": [self testHostPath],
+//    @"TestBundleLocation": [self productBundlePath],
   }];
 
   return environment;

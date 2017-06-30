@@ -60,6 +60,41 @@ static BOOL IsDirectory(NSString *path) {
   return exists && isDirectory;
 };
 
+static BOOL ParseRawTestArgs(NSArray *rawTestArgs, NSMutableDictionary *tests, NSString **errorMessage) {
+  for (NSString *rawTestArg in rawTestArgs) {
+    NSRange colonRange = [rawTestArg rangeOfString:@":"];
+
+    if (colonRange.location == NSNotFound || colonRange.location == 0) {
+      *errorMessage = [NSString stringWithFormat:@"run-tests: -appTest must be in the form test-bundle:test-app"];
+      return NO;
+    }
+
+    NSString *testBundle = [[rawTestArg substringToIndex:colonRange.location] stringByStandardizingPath];
+    NSString *hostApp = [[rawTestArg substringFromIndex:colonRange.location + 1] stringByStandardizingPath];
+    NSString *existingHostAppForTestBundle = tests[testBundle];
+
+    if (existingHostAppForTestBundle) {
+      *errorMessage = [NSString stringWithFormat:@"run-tests: The same test bundle '%@' cannot test more than one test host app (got '%@' and '%@')",
+                       testBundle, existingHostAppForTestBundle, hostApp];
+      return NO;
+    }
+
+    if (!IsDirectory(testBundle)) {
+      *errorMessage = [NSString stringWithFormat:@"run-tests: Application test at path '%@' does not exist or is not a directory", testBundle];
+      return NO;
+    }
+    BOOL isDirectory;
+    BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:hostApp isDirectory:&isDirectory];
+    if (!fileExists || isDirectory) {
+      *errorMessage = [NSString stringWithFormat:@"run-tests: Application test host binary at path '%@' does not exist or is not a file", hostApp];
+      return NO;
+    }
+
+    tests[testBundle] = hostApp;
+  }
+  return YES;
+};
+
 NSArray *BucketizeTestCasesByTestCase(NSArray *testCases, NSUInteger bucketSize)
 {
   return chunkifyArray(testCases, bucketSize);
@@ -103,6 +138,7 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
 @property (nonatomic, assign) BucketBy bucketBy;
 @property (nonatomic, assign) int testTimeout;
 @property (nonatomic, strong) NSMutableArray *rawAppTestArgs;
+@property (nonatomic, strong) NSMutableArray *rawUITestArgs;
 @end
 
 @implementation RunTestsAction
@@ -206,6 +242,11 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
                      description:@"Add a path to an app test bundle with the path to its host app"
                        paramName:@"BUNDLE:HOST_APP"
                            mapTo:@selector(addAppTest:)],
+    [Action actionOptionWithName:@"uiTest"
+                         aliases:nil
+                     description:@"Add a path to an UI test bundle with the path to its host app" // TODO
+                       paramName:@"BUNDLE:HOST_APP"
+                           mapTo:@selector(addUITest:)],
     [Action actionOptionWithName:@"waitForDebugger"
                          aliases:nil
                      description:@"Spawned test processes will wait for a debugger to be attached before invoking tests. With the pretty reporter, a message will be displayed with the PID to attach. With the plain reporter, it will just halt."
@@ -215,19 +256,25 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
 
 + (NSArray *)_allTestablesForLogicTests:(NSArray *)logicTests
                                appTests:(NSDictionary *)appTests
+                                uiTests:(NSDictionary *)uiTests
                        xcodeSubjectInfo:(XcodeSubjectInfo *)xcodeSubjectInfo
 {
-  if (logicTests.count || appTests.count) {
+  if (logicTests.count || appTests.count || uiTests.count) {
     NSMutableArray *result = [NSMutableArray array];
     for (NSString *logicTestBundle in logicTests) {
       Testable *testable = [[Testable alloc] init];
       testable.target = logicTestBundle;
       [result addObject:testable];
     }
-
     for (NSString *appTestBundle in appTests) {
       Testable *testable = [[Testable alloc] init];
       testable.target = appTestBundle;
+      [result addObject:testable];
+    }
+    for (NSString *uiTestBundle in uiTests) {
+      Testable *testable = [[Testable alloc] init];
+      testable.target = uiTestBundle;
+      // todo: mark as ui test
       [result addObject:testable];
     }
     return result;
@@ -241,24 +288,30 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
 + (Testable *)_matchingTestableForTarget:(NSString *)target
                               logicTests:(NSArray *)logicTests
                                 appTests:(NSDictionary *)appTests
+                                 uiTests:(NSDictionary *)uiTests
                         xcodeSubjectInfo:(XcodeSubjectInfo *)xcodeSubjectInfo
 {
-  for (NSString *logicTestBundle in logicTests) {
-    if ([target isEqualToString:logicTestBundle]) {
+  for (NSString *testBundle in logicTests) {
+    if ([target isEqualToString:testBundle]) {
       Testable *testable = [[Testable alloc] init];
-      testable.target = logicTestBundle;
+      testable.target = testBundle;
       return testable;
     }
   }
-
-  for (NSString *appTestBundle in appTests) {
-    if ([target isEqualToString:appTestBundle]) {
+  for (NSString *testBundle in appTests) {
+    if ([target isEqualToString:testBundle]) {
       Testable *testable = [[Testable alloc] init];
-      testable.target = appTestBundle;
+      testable.target = testBundle;
       return testable;
     }
   }
-
+  for (NSString *testBundle in uiTests) {
+    if ([target isEqualToString:testBundle]) {
+      Testable *testable = [[Testable alloc] init];
+      testable.target = testBundle;
+      return testable;
+    }
+  }
   return [xcodeSubjectInfo testableWithTarget:target];
 }
 
@@ -266,6 +319,7 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
         perTargetTestableBuildSettings:(NSDictionary **)perTargetTestableBuildSettings
                             logicTests:(NSArray *)logicTests
                               appTests:(NSDictionary *)appTests
+                               uiTests:(NSDictionary *)uiTests
                                sdkName:(NSString *)sdkName
                                sdkPath:(NSString *)sdkPath
                           platformPath:(NSString *)platformPath
@@ -293,14 +347,23 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
       Xcode_FULL_PRODUCT_NAME: logicTestFileName,
     };
   }
-
-  for (NSString *appTest in appTests) {
-    NSString *appTestDirName = [appTest stringByDeletingLastPathComponent];
-    NSString *appTestFileName = [appTest lastPathComponent];
-    NSString *testHostPath = appTests[appTest];
-    newPerTargetTestableBuildSettings[appTest] = @{
-      Xcode_BUILT_PRODUCTS_DIR: appTestDirName,
-      Xcode_FULL_PRODUCT_NAME: appTestFileName,
+  for (NSString *test in appTests) {
+    NSString *testDirName = [test stringByDeletingLastPathComponent];
+    NSString *testFileName = [test lastPathComponent];
+    NSString *testHostPath = appTests[test];
+    newPerTargetTestableBuildSettings[test] = @{
+      Xcode_BUILT_PRODUCTS_DIR: testDirName,
+      Xcode_FULL_PRODUCT_NAME: testFileName,
+      Xcode_TEST_HOST: testHostPath,
+    };
+  }
+  for (NSString *test in uiTests) {
+    NSString *testDirName = [test stringByDeletingLastPathComponent];
+    NSString *testFileName = [test lastPathComponent];
+    NSString *testHostPath = uiTests[test];
+    newPerTargetTestableBuildSettings[test] = @{
+      Xcode_BUILT_PRODUCTS_DIR: testDirName,
+      Xcode_FULL_PRODUCT_NAME: testFileName,
       Xcode_TEST_HOST: testHostPath,
     };
   }
@@ -310,15 +373,17 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
 - (instancetype)init
 {
   if (self = [super init]) {
-    _onlyList = [[NSMutableArray alloc] init];
-    _omitList = [[NSMutableArray alloc] init];
+    _onlyList = [NSMutableArray array];;
+    _omitList = [NSMutableArray array];;
     _logicTestBucketSize = 0;
     _appTestBucketSize = 0;
     _bucketBy = BucketByTestCase;
     _testTimeout = 0;
-    _rawAppTestArgs = [[NSMutableArray alloc] init];
-    _logicTests = [[NSMutableArray alloc] init];
-    _appTests = [[NSMutableDictionary alloc] init];
+    _rawAppTestArgs = [NSMutableArray array];
+    _rawUITestArgs = [NSMutableArray array];
+    _logicTests = [NSMutableArray array];
+    _appTests = [NSMutableDictionary dictionary];
+    _uiTests = [NSMutableDictionary dictionary];
   }
   return self;
 }
@@ -370,9 +435,13 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
   [_rawAppTestArgs addObject:argument];
 }
 
+- (void)addUITest:(NSString *)argument {
+  [_rawUITestArgs addObject:argument];
+}
+
 - (BOOL)testsPresentInOptions
 {
-  return (_logicTests.count > 0) || (_rawAppTestArgs.count > 0) || (_appTests.count > 0);
+  return (_logicTests.count > 0) || (_rawAppTestArgs.count > 0) || (_appTests.count > 0) || (_rawUITestArgs.count > 0) || (_uiTests.count > 0);
 }
 
 - (NSDictionary *)onlyListAsTargetsAndTestCasesList
@@ -472,36 +541,12 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
     }
   }
 
-  for (NSString *rawAppTestArg in _rawAppTestArgs) {
-    NSRange colonRange = [rawAppTestArg rangeOfString:@":"];
+  if (!ParseRawTestArgs(_rawAppTestArgs, _appTests, errorMessage)) {
+    return NO;
+  }
 
-    if (colonRange.location == NSNotFound || colonRange.location == 0) {
-      *errorMessage = [NSString stringWithFormat:@"run-tests: -appTest must be in the form test-bundle:test-app"];
-      return NO;
-    }
-
-    NSString *testBundle = [[rawAppTestArg substringToIndex:colonRange.location] stringByStandardizingPath];
-    NSString *hostApp = [[rawAppTestArg substringFromIndex:colonRange.location + 1] stringByStandardizingPath];
-    NSString *existingHostAppForTestBundle = _appTests[testBundle];
-
-    if (existingHostAppForTestBundle) {
-      *errorMessage = [NSString stringWithFormat:@"run-tests: The same test bundle '%@' cannot test more than one test host app (got '%@' and '%@')",
-                                testBundle, existingHostAppForTestBundle, hostApp];
-      return NO;
-    }
-
-    if (!IsDirectory(testBundle)) {
-      *errorMessage = [NSString stringWithFormat:@"run-tests: Application test at path '%@' does not exist or is not a directory", testBundle];
-      return NO;
-    }
-    BOOL isDirectory;
-    BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:hostApp isDirectory:&isDirectory];
-    if (!fileExists || isDirectory) {
-      *errorMessage = [NSString stringWithFormat:@"run-tests: Application test host binary at path '%@' does not exist or is not a file", hostApp];
-      return NO;
-    }
-
-    _appTests[testBundle] = hostApp;
+  if (!ParseRawTestArgs(_rawUITestArgs, _uiTests, errorMessage)) {
+    return NO;
   }
 
   if (_onlyList.count > 0 && _omitList.count > 0) {
@@ -512,6 +557,7 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
     if ([[self class] _matchingTestableForTarget:target
                                       logicTests:_logicTests
                                         appTests:_appTests
+                                         uiTests:_uiTests
                                 xcodeSubjectInfo:xcodeSubjectInfo] == nil) {
       *errorMessage = [NSString stringWithFormat:@"run-tests: '%@' is not a testing target in this scheme.", target];
       return NO;
@@ -531,6 +577,7 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
     NSMutableArray *unskipped = [NSMutableArray array];
     NSArray *allTestables = [[self class] _allTestablesForLogicTests:_logicTests
                                                             appTests:_appTests
+                                                             uiTests:_uiTests
                                                     xcodeSubjectInfo:xcodeSubjectInfo];
     NSDictionary *omit = [self omitListAsTargetsAndTestCasesList];
     for (Testable *testable in allTestables) {
@@ -558,6 +605,7 @@ NSArray *BucketizeTestCasesByTestClass(NSArray *testCases, NSUInteger bucketSize
         [[self class] _matchingTestableForTarget:only
                                       logicTests:_logicTests
                                         appTests:_appTests
+                                         uiTests:_uiTests
                                 xcodeSubjectInfo:xcodeSubjectInfo];
 
       if (matchingTestable) {
@@ -753,6 +801,7 @@ typedef BOOL (^TestableBlock)(NSArray *reporters);
                       perTargetTestableBuildSettings:&perTargetTestableBuildSettings
                                           logicTests:_logicTests
                                             appTests:_appTests
+                                             uiTests:_uiTests
                                              sdkName:options.sdk
                                              sdkPath:options.sdkPath
                                         platformPath:options.platformPath

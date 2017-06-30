@@ -8,18 +8,25 @@
 
 @interface XCTestConfiguration : NSObject <NSSecureCoding>
 
+@property(copy) NSString *absolutePath;
+@property(copy) NSDictionary *aggregateStatisticsBeforeCrash;
+@property(copy) NSString *baselineFileRelativePath;
 @property(copy) NSURL *baselineFileURL;
-@property BOOL disablePerformanceMetrics;
+@property(assign) BOOL initializeForUITesting;
+@property(assign) BOOL disablePerformanceMetrics;
 @property(copy) NSString *pathToXcodeReportingSocket;
 @property(copy) NSString *productModuleName;
-@property BOOL reportResultsToIDE;
+@property(assign) BOOL reportActivities;
+@property(assign) BOOL reportResultsToIDE;
 @property(copy) NSUUID *sessionIdentifier;
 @property(copy) NSString *targetApplicationBundleID;
 @property(copy) NSString *targetApplicationPath;
+@property(copy) NSString *testBundleRelativePath;
 @property(copy) NSURL *testBundleURL;
+@property(assign) BOOL testsMustRunOnMainThread;
 @property(copy) NSSet *testsToRun;
 @property(copy) NSSet *testsToSkip;
-@property BOOL treatMissingBaselinesAsFailures;
+@property(assign) BOOL treatMissingBaselinesAsFailures;
 
 + (id)activeTestConfiguration;
 + (id)configurationWithContentsOfFile:(id)arg1;

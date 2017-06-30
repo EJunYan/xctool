@@ -644,6 +644,8 @@ containsFilesModifiedSince:(NSDate *)sinceDate
 
 + (NSArray *)testablesInSchemePath:(NSString *)schemePath basePath:(NSString *)basePath
 {
+  // TODO: support UI tests
+
   NSError *error = nil;
   NSXMLDocument *doc = [[NSXMLDocument alloc] initWithContentsOfURL:[NSURL fileURLWithPath:schemePath]
                                                              options:0

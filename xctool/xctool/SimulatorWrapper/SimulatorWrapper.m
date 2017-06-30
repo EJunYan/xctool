@@ -74,6 +74,21 @@ static const NSString * kOptionsWaitForDebuggerKey = @"wait_for_debugger";
   NSMutableDictionary *environmentEdited = [environment mutableCopy];
   environmentEdited[kOtestShimStdoutFilePath] = otestShimOutputPath;
 
+//  environmentEdited = [@{
+//     @"DTX_CONNECTION_SERVICES_PATH": @"/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/Developer/Library/PrivateFrameworks/DTXConnectionServices.framework",
+//     @"DYLD_FRAMEWORK_PATH": @"/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator:/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks",
+//     @"DYLD_INSERT_LIBRARIES": @"/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator10.2.sdk/Developer/Library/PrivateFrameworks/DTDDISupport.framework/libViewDebuggerSupport.dylib",
+//     @"DYLD_LIBRARY_PATH": @"/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator:/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks",
+//     @"NSUnbufferedIO": @"YES",
+//     @"OS_ACTIVITY_DT_MODE": @"YES",
+//     @"XCODE_DBG_XPC_EXCLUSIONS": @"com.apple.dt.xctestSymbolicator",
+////     @"XCTestConfigurationFilePath": @"/var/folders/8p/n028bzz51m52b38w37wb0pbn2tm091/T/com.apple.dt.XCTest/7A3EEC15-DA00-4847-979C-6DD4811324A0/remote-container/tmp/TestProject-AppTestsUITests-7A3EEC15-DA00-4847-979C-6DD4811324A0-xctool.xctestconfiguration",
+//     @"XCTestConfigurationFilePath": @"/tmp/xctool/test_xctool.xctestconfiguration",
+//     @"__XCODE_BUILT_PRODUCTS_DIR_PATHS": @"/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator",
+//     @"__XPC_DYLD_FRAMEWORK_PATH": @"/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator",
+//     @"__XPC_DYLD_LIBRARY_PATH": @"/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator",
+//  } mutableCopy];
+
   /*
    * Passing the same set of arguments and environment as Xcode 6.4.
    */

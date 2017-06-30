@@ -350,13 +350,25 @@ static NSString * const kEnvVarPassThroughPrefix = @"XCTOOL_TEST_ENV_";
   Class XCTestConfigurationClass = NSClassFromString(@"XCTestConfiguration");
   NSAssert(XCTestConfigurationClass, @"XCTestConfiguration isn't available");
 
+  NSString *tmp = @"/var/folders/8p/n028bzz51m52b38w37wb0pbn2tm091/T/com.apple.dt.XCTest/9C355C94-116D-4706-BB3F-2645D78B65DB/remote-container/tmp/TestProject-AppTestsUITests-9C355C94-116D-4706-BB3F-2645D78B65DB.xctestconfiguration";
+
   XCTestConfiguration *configuration = [[XCTestConfigurationClass alloc] init];
   [configuration setProductModuleName:_buildSettings[Xcode_PRODUCT_MODULE_NAME]];
   [configuration setTestBundleURL:[NSURL fileURLWithPath:[_simulatorInfo productBundlePath]]];
   [configuration setTestsToSkip:[NSSet setWithArray:testCasesToSkip]];
   [configuration setReportResultsToIDE:NO];
 
-  NSString *XCTestConfigurationFilename = [NSString stringWithFormat:@"%@-%@", _buildSettings[Xcode_PRODUCT_NAME], [configuration.sessionIdentifier UUIDString]];
+  [configuration setInitializeForUITesting:YES];
+  [configuration setTestsMustRunOnMainThread:YES];
+  [configuration setTargetApplicationBundleID:@"ru.1extreme.zebra"];
+  [configuration setTargetApplicationPath:@"/Users/nekto/Library/Developer/Xcode/DerivedData/TestProject-AppTests-aswrqxzzqfkrbkeiumwtdlkqxcsy/Build/Products/Debug-iphonesimulator/TestProject-AppTests.app"];
+
+//  configuration = [NSKeyedUnarchiver unarchiveObjectWithFile:tmp];
+//  [configuration setReportActivities:NO];
+//  [configuration setReportResultsToIDE:NO];
+  NSLog(@"configuration: %@", configuration);
+
+  NSString *XCTestConfigurationFilename = [NSString stringWithFormat:@"%@-%@", _buildSettings[Xcode_PRODUCT_MODULE_NAME], [configuration.sessionIdentifier UUIDString]];
   NSString *XCTestConfigurationFilePath = [MakeTempFileWithPrefix(XCTestConfigurationFilename) stringByAppendingPathExtension:@"xctestconfiguration"];
   if ([[NSFileManager defaultManager] fileExistsAtPath:XCTestConfigurationFilePath]) {
     [[NSFileManager defaultManager] removeItemAtPath:XCTestConfigurationFilePath error:nil];
